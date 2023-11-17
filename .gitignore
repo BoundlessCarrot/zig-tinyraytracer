@@ -1,3 +1,6 @@
 # Ignore content built with CMake
 build/
 
+zig-cache
+zig-out/bin
+src/scratch.zig
