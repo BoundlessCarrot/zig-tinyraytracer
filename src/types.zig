@@ -146,44 +146,33 @@ pub const Ray = struct {
         return intersect_bool;
     }
 
-    pub fn cast_ray(orig: Vec3f, dir: Vec3f, sphere: Sphere) Color {
-        var sphere_dist: f32 = f32_MAX;
-        if (!try sphere.ray_intersect(orig, dir, &sphere_dist)) {
-            return Color.init(52, 235, 225);
-        }
-        return Color.init(3, 3, 3);
-    }
+    pub fn cast_ray(orig: Vec3f, dir: Vec3f, spheres: ArrayList(Sphere)) Color {
+        var point: Vec3f = Vec3f.init(0, 0, 0);
+        var N: Vec3f = Vec3f.init(0, 0, 0);
 
-    //     bool scene_intersect(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &spheres, Vec3f &hit, Vec3f &N, Material &material) {
-    //     float spheres_dist = std::numeric_limits<float>::max();
-    //     for (size_t i=0; i < spheres.size(); i++) {
-    //         float dist_i;
-    //         if (spheres[i].ray_intersect(orig, dir, dist_i) && dist_i < spheres_dist) {
-    //             spheres_dist = dist_i;
-    //             hit = orig + dir*dist_i;
-    //             N = (hit - spheres[i].center).normalize();
-    //             material = spheres[i].material;
-    //         }
-    //     }
-    //     return spheres_dist<1000;
-    // }
+        var material: Material = Material.initDefault();
+
+        if (!Ray.sceneIntersect(orig, dir, spheres, point, N, material)) {
+            return Vec3f.init(0.2, 0.7, 0.8).vecToColor();
+        }
+
+        return material.diffuse_color;
+    }
 
     // TODO: Test and refactor - this is a direct translation and can't be right
     pub fn sceneIntersect(orig: Vec3f, dir: Vec3f, spheres: ArrayList(Sphere), hit: Vec3f, N: Vec3f, material: Material) bool {
         var spheres_dist = f32_MAX;
 
-        // NOTE: Iterate directly over the list instead of the index?
-        for (0..spheres.items.len) |i| {
-            // NOTE: IS the above initialization to undefined or 0?
+        for (spheres.items) |sphere| {
             var dist_i: f32 = 0.0;
 
-            if (spheres.items[i].ray_intersect(orig, dir, dist_i) and dist_i < spheres_dist) {
+            if (try sphere.ray_intersect(orig, dir, &dist_i) and dist_i < spheres_dist) {
                 spheres_dist = dist_i;
 
                 // NOTE: Do these 3 _need_ to be passed in?
                 hit = orig + dir * dist_i;
-                N = try (hit - spheres.items[i].center).normalize();
-                material = spheres.items[i].material;
+                N = try (hit - sphere.center).normalize();
+                material = sphere.material;
             }
         }
 
@@ -192,11 +181,11 @@ pub const Ray = struct {
 };
 
 pub const Material = struct {
-    diffuse_color: Vec3f!Color,
+    diffuse_color: Color,
 
-    pub fn init(color: Vec3f!Color) Material {
+    pub fn init(color: Vec3f) Material {
         return Material{
-            .diffuse_color = color,
+            .diffuse_color = color.vecToColor(),
         };
     }
 

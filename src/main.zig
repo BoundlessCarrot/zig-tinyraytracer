@@ -15,6 +15,7 @@ const Color = types.Color;
 const Sphere = types.Sphere;
 const Vec3f = types.Vec3f;
 const Ray = types.Ray;
+const Material = types.Material;
 
 // Constants
 const PI = 3.14159;
@@ -36,7 +37,17 @@ pub fn main() !void {
     var framebuffer = ArrayList(Color).init(arena.allocator());
     defer framebuffer.deinit();
 
-    var sphere = Sphere.init(Vec3f.init(-3.0, 0.0, -16.0), 2.0);
+    var spheres = ArrayList(Sphere).init(arena.allocator());
+    defer spheres.deinit();
+
+    const ivory: Material = Material.init(Vec3f.init(0.4, 0.4, 0.3));
+    const red_rubber: Material = Material.init(Vec3f.init(0.3, 0.1, 0.1));
+
+    try spheres.append(Sphere.init(Vec3f.init(-3.0, 0.0, -16.0), 2.0, ivory));
+    try spheres.append(Sphere.init(Vec3f.init(-3.0, 0, -16.0), 2.0, ivory));
+    try spheres.append(Sphere.init(Vec3f.init(-1.0, -1.5, -12.0), 2.0, red_rubber));
+    try spheres.append(Sphere.init(Vec3f.init(1.5, -0.5, -18.0), 3.0, red_rubber));
+    try spheres.append(Sphere.init(Vec3f.init(7.0, 5.0, -18.0), 4.0, ivory));
 
     for (0..height) |j| {
         for (0..width) |i| {
@@ -45,7 +56,7 @@ pub fn main() !void {
             var dir: Vec3f = Vec3f.init(x, y, -1.0);
             try dir.normalize();
             // framebuffer.items[i + j * width] = Vec3f.cast_ray(ZERO_VECTOR, dir, sphere);
-            try framebuffer.insert(i + j * width, Ray.cast_ray(ZERO_VECTOR, dir, sphere));
+            try framebuffer.insert(i + j * width, Ray.cast_ray(ZERO_VECTOR, dir, spheres));
         }
     }
 
