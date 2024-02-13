@@ -15,7 +15,7 @@ const fs = std.fs;
 
 // pub fn render(t: anytype, data: anytype) !void;
 
-pub fn render_color(filename: []const u8, image: arrayList(Color), width: usize, height: usize) !void {
+pub fn renderWithColor(filename: []const u8, image: arrayList(Color), width: usize, height: usize) !void {
     assert(image.items.len == width * height);
 
     const file = try fs.cwd().createFile(filename, .{});
@@ -29,7 +29,7 @@ pub fn render_color(filename: []const u8, image: arrayList(Color), width: usize,
     }
 }
 
-pub fn render_vec(filename: []const u8, image: arrayList(Vec3f), width: usize, height: usize) !void {
+pub fn renderWithVec(filename: []const u8, image: arrayList(Vec3f), width: usize, height: usize) !void {
     assert(image.items.len == width * height);
 
     const file = try fs.cwd().createFile(filename, .{});

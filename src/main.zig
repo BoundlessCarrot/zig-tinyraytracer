@@ -6,14 +6,15 @@ const types = @import("types.zig");
 // Functions
 const print = std.debug.print;
 const assert = std.debug.assert;
-const render_color = render.render_color;
-const render_vec = render.render_vec;
+const render_color = render.renderWithColor;
+const render_vec = render.renderWithVec;
 
 // Types
 const ArrayList = std.ArrayList;
 const Color = types.Color;
 const Sphere = types.Sphere;
 const Vec3f = types.Vec3f;
+const Ray = types.Ray;
 
 // Constants
 const PI = 3.14159;
@@ -44,7 +45,7 @@ pub fn main() !void {
             var dir: Vec3f = Vec3f.init(x, y, -1.0);
             try dir.normalize();
             // framebuffer.items[i + j * width] = Vec3f.cast_ray(ZERO_VECTOR, dir, sphere);
-            try framebuffer.insert(i + j * width, Vec3f.cast_ray(ZERO_VECTOR, dir, sphere));
+            try framebuffer.insert(i + j * width, Ray.cast_ray(ZERO_VECTOR, dir, sphere));
         }
     }
 
