@@ -8,6 +8,7 @@ const assert = std.debug.assert;
 // Constants
 const PI = 3.14159;
 const f32_MAX = std.math.floatMax(f32);
+const BACKGROUND_COLOR = Vec3f.init(0.2, 0.7, 0.8).vecToColor();
 
 pub const Color = struct {
     r: u8,
@@ -60,12 +61,16 @@ pub const Vec3f = struct {
         self.items = @Vector(3, f32){ self.x, self.y, self.z };
     }
 
-    pub fn dot_product(vec_a: Vec3f, vec_b: Vec3f) f32 {
-        return vec_a.x * vec_b.x + vec_a.y * vec_b.y + vec_a.z * vec_b.z;
+    pub fn dot_product(self: Vec3f, other: Vec3f) f32 {
+        return self.x * other.x + self.y * other.y + self.z * other.z;
+    }
+
+    fn norm(self: Vec3f) f32 {
+        return std.math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z);
     }
 
     pub fn normalize(self: *Self) !void {
-        const length = @sqrt(self.dot_product(self.*));
+        const length = self.norm();
         self.x /= length;
         self.y /= length;
         self.z /= length;
@@ -93,27 +98,27 @@ pub const Sphere = struct {
         return Sphere{ .center = center, .radius = radius, .material = material };
     }
 
-    pub fn ray_intersect(self: Sphere, orig: Vec3f, dir: Vec3f, t0: *f32) !bool {
-        var L: Vec3f = Vec3f.init_from_vec(self.center.items - orig.items);
-        var tca: f32 = Vec3f.dot_product(L, dir);
-        var d2: f32 = Vec3f.dot_product(L, L) - (tca * tca);
-
-        if (d2 > (self.radius * self.radius)) {
-            return false;
-        }
-
-        var thc: f32 = @sqrt(self.radius * self.radius - d2);
-        t0.* = tca - thc;
-
-        var t1: f32 = tca + thc;
-
-        if (t0.* < 0) {
-            t0.* = t1;
-        }
-
-        const intersect_bool = if (t0.* < 0) false else true;
-        return intersect_bool;
-    }
+    // pub fn ray_intersect(self: Sphere, orig: Vec3f, dir: Vec3f, t0: *f32) !bool {
+    //     var L: Vec3f = Vec3f.init_from_vec(self.center.items - orig.items);
+    //     var tca: f32 = Vec3f.dot_product(L, dir);
+    //     var d2: f32 = Vec3f.dot_product(L, L) - (tca * tca);
+    //
+    //     if (d2 > (self.radius * self.radius)) {
+    //         return false;
+    //     }
+    //
+    //     var thc: f32 = @sqrt(self.radius * self.radius - d2);
+    //     t0.* = tca - thc;
+    //
+    //     var t1: f32 = tca + thc;
+    //
+    //     if (t0.* < 0) {
+    //         t0.* = t1;
+    //     }
+    //
+    //     const intersect_bool = if (t0.* < 0) false else true;
+    //     return intersect_bool;
+    // }
 };
 
 pub const Ray = struct {
@@ -124,16 +129,17 @@ pub const Ray = struct {
         return Ray{ .orig = orig, .dir = dir };
     }
 
-    pub fn ray_intersect(self: Sphere, orig: Vec3f, dir: Vec3f, t0: *f32) !bool {
-        var L: Vec3f = Vec3f.init_from_vec(self.center.items - orig.items);
+    pub fn rayIntersect(sphere: Sphere, orig: Vec3f, dir: Vec3f, t0: *f32) !bool {
+        std.log.info("rayIntersect\n", .{});
+        var L: Vec3f = Vec3f.init_from_vec(sphere.center.items - orig.items);
         var tca: f32 = Vec3f.dot_product(L, dir);
         var d2: f32 = Vec3f.dot_product(L, L) - (tca * tca);
 
-        if (d2 > (self.radius * self.radius)) {
+        if (d2 > (sphere.radius * sphere.radius)) {
             return false;
         }
 
-        var thc: f32 = @sqrt(self.radius * self.radius - d2);
+        var thc: f32 = @sqrt(sphere.radius * sphere.radius - d2);
         t0.* = tca - thc;
 
         var t1: f32 = tca + thc;
@@ -146,33 +152,37 @@ pub const Ray = struct {
         return intersect_bool;
     }
 
-    pub fn cast_ray(orig: Vec3f, dir: Vec3f, spheres: ArrayList(Sphere)) Color {
+    pub fn castRay(orig: Vec3f, dir: Vec3f, spheres: ArrayList(Sphere)) Color {
+        std.log.info("castRay\n", .{});
         var point: Vec3f = Vec3f.init(0, 0, 0);
         var N: Vec3f = Vec3f.init(0, 0, 0);
-
         var material: Material = Material.initDefault();
 
-        if (!Ray.sceneIntersect(orig, dir, spheres, point, N, material)) {
-            return Vec3f.init(0.2, 0.7, 0.8).vecToColor();
+        if (!try Ray.sceneIntersect(orig, dir, spheres, &point, &N, &material)) {
+            return BACKGROUND_COLOR;
         }
 
         return material.diffuse_color;
     }
 
     // TODO: Test and refactor - this is a direct translation and can't be right
-    pub fn sceneIntersect(orig: Vec3f, dir: Vec3f, spheres: ArrayList(Sphere), hit: Vec3f, N: Vec3f, material: Material) bool {
+    pub fn sceneIntersect(orig: Vec3f, dir: Vec3f, spheres: ArrayList(Sphere), hit: *Vec3f, N: *Vec3f, material: *Material) !bool {
+        std.log.info("sceneIntersect\n", .{});
         var spheres_dist = f32_MAX;
 
         for (spheres.items) |sphere| {
-            var dist_i: f32 = 0.0;
+            var dist_i: f32 = undefined;
 
-            if (try sphere.ray_intersect(orig, dir, &dist_i) and dist_i < spheres_dist) {
+            if (try Ray.rayIntersect(sphere, orig, dir, &dist_i) and dist_i < spheres_dist) {
                 spheres_dist = dist_i;
 
                 // NOTE: Do these 3 _need_ to be passed in?
-                hit = orig + dir * dist_i;
-                N = try (hit - sphere.center).normalize();
+                hit.items = orig.items + dir.items * @as(f32, @splat(dist_i));
+                N.items = try (hit.items - sphere.center).normalize();
                 material = sphere.material;
+
+                hit.update();
+                N.update();
             }
         }
 
@@ -183,15 +193,21 @@ pub const Ray = struct {
 pub const Material = struct {
     diffuse_color: Color,
 
-    pub fn init(color: Vec3f) Material {
+    pub fn vecInit(color: Vec3f) Material {
         return Material{
             .diffuse_color = color.vecToColor(),
         };
     }
 
+    pub fn colorInit(color: Color) Material {
+        return Material{
+            .diffuse_color = color,
+        };
+    }
+
     pub fn initDefault() Material {
         return Material{
-            .diffuse_color = Vec3f{ .x = 0, .y = 0, .z = 0 },
+            .diffuse_color = Color{ .r = 0, .g = 0, .b = 0 },
         };
     }
 };

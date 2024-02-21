@@ -40,8 +40,8 @@ pub fn main() !void {
     var spheres = ArrayList(Sphere).init(arena.allocator());
     defer spheres.deinit();
 
-    const ivory: Material = Material.init(Vec3f.init(0.4, 0.4, 0.3));
-    const red_rubber: Material = Material.init(Vec3f.init(0.3, 0.1, 0.1));
+    const ivory: Material = Material.vecInit(Vec3f.init(0.4, 0.4, 0.3));
+    const red_rubber: Material = Material.vecInit(Vec3f.init(0.3, 0.1, 0.1));
 
     try spheres.append(Sphere.init(Vec3f.init(-3.0, 0.0, -16.0), 2.0, ivory));
     try spheres.append(Sphere.init(Vec3f.init(-3.0, 0, -16.0), 2.0, ivory));
@@ -56,7 +56,7 @@ pub fn main() !void {
             var dir: Vec3f = Vec3f.init(x, y, -1.0);
             try dir.normalize();
             // framebuffer.items[i + j * width] = Vec3f.cast_ray(ZERO_VECTOR, dir, sphere);
-            try framebuffer.insert(i + j * width, Ray.cast_ray(ZERO_VECTOR, dir, spheres));
+            try framebuffer.insert(i + j * width, Ray.castRay(ZERO_VECTOR, dir, spheres));
         }
     }
 
